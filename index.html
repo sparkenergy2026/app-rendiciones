@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#050507" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Rendiciones" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>Rendiciones Spark.e</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="icon.svg" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="phone">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Rendiciones</p>
+            <h1>Gastos</h1>
+          </div>
+          <button class="icon-button" id="exportBtn" title="Exportar gastos" aria-label="Exportar gastos">
+            <span aria-hidden="true">⇩</span>
+          </button>
+        </header>
+
+        <nav class="tabs" aria-label="Secciones">
+          <button class="tab active" data-view="capture">Capturar</button>
+          <button class="tab" data-view="dashboard">Dashboard</button>
+          <button class="tab" data-view="history">Histórico</button>
+          <button class="tab" data-view="report">Reporte</button>
+        </nav>
+
+        <section class="view active" id="captureView">
+          <div class="scan-panel">
+            <label class="camera-tile" for="receiptInput">
+              <input id="receiptInput" type="file" accept="image/*" capture="environment" />
+              <img id="receiptPreview" alt="" />
+              <span class="camera-empty">
+                <span class="camera-mark">▣</span>
+                <strong>Fotografiar boleta o factura</strong>
+                <small>La imagen queda adjunta al gasto</small>
+              </span>
+            </label>
+            <button class="primary-action" id="scanBtn">Leer documento</button>
+          </div>
+
+          <form class="expense-form" id="expenseForm">
+            <div class="field-grid">
+              <label>
+                Empresa
+                <select id="company" required>
+                  <option>BESSGX</option>
+                  <option>Spark.e</option>
+                  <option>Energy Pulse</option>
+                </select>
+              </label>
+              <label>
+                Tipo de gasto
+                <select id="category" required>
+                  <option>Combustible</option>
+                  <option>Alimentación</option>
+                  <option>Transporte</option>
+                  <option>Oficina</option>
+                  <option>Herramientas / materiales</option>
+                  <option>Servicios</option>
+                  <option>Viajes</option>
+                  <option>Estacionamiento / peajes</option>
+                  <option>Otros</option>
+                </select>
+              </label>
+            </div>
+
+            <label>
+              Razón Social
+              <input id="supplierName" placeholder="Proveedor" required />
+            </label>
+
+            <div class="field-grid">
+              <label>
+                RUT
+                <input id="supplierRut" placeholder="76.000.000-0" required />
+              </label>
+              <label>
+                Fecha
+                <input id="date" type="date" required />
+              </label>
+            </div>
+
+            <div class="amount-grid">
+              <label>
+                Neto
+                <input id="net" inputmode="numeric" placeholder="0" required />
+              </label>
+              <label>
+                IVA
+                <input id="vat" inputmode="numeric" placeholder="0" required />
+              </label>
+              <label>
+                Total
+                <input id="total" inputmode="numeric" placeholder="0" required />
+              </label>
+            </div>
+
+            <label>
+              Comentario
+              <textarea id="comment" rows="3" placeholder="Descripción opcional del gasto"></textarea>
+            </label>
+
+            <div class="form-actions">
+              <button class="save-action" id="saveExpenseBtn" type="submit">Guardar gasto</button>
+              <button class="ghost-action" id="cancelEditBtn" type="button" hidden>Cancelar edición</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="view" id="dashboardView">
+          <div class="selector-row">
+            <label>
+              Empresa
+              <select id="dashboardCompany">
+                <option>BESSGX</option>
+                <option>Spark.e</option>
+                <option>Energy Pulse</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="metric-band">
+            <p>Total mes en curso</p>
+            <strong id="monthTotal">$0</strong>
+            <span id="monthCount">0 documentos</span>
+          </div>
+
+          <div class="section-title">
+            <h2>Desglose</h2>
+            <span id="currentMonthLabel"></span>
+          </div>
+          <div class="category-list" id="categoryList"></div>
+        </section>
+
+        <section class="view" id="historyView">
+          <div class="selector-row">
+            <label>
+              Empresa
+              <select id="historyCompany">
+                <option>BESSGX</option>
+                <option>Spark.e</option>
+                <option>Energy Pulse</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="section-title">
+            <h2>Año en curso</h2>
+            <span>mensual</span>
+          </div>
+          <div class="history-chart" id="historyChart"></div>
+          <div class="recent-list" id="recentList"></div>
+        </section>
+
+        <section class="view" id="reportView">
+          <div class="report-panel">
+            <div class="field-grid">
+              <label>
+                Empresa
+                <select id="reportCompany">
+                  <option>BESSGX</option>
+                  <option>Spark.e</option>
+                  <option>Energy Pulse</option>
+                </select>
+              </label>
+              <label>
+                Mes
+                <input id="reportMonth" type="month" />
+              </label>
+            </div>
+
+            <label>
+              Enviar a
+              <input id="reportEmail" type="email" value="daniel.diaz@spark-e.cl" />
+            </label>
+
+            <div class="report-summary">
+              <p>Documentos</p>
+              <strong id="reportCount">0</strong>
+              <p>Total</p>
+              <strong id="reportTotal">$0</strong>
+            </div>
+
+            <div class="report-actions">
+              <button class="primary-action" id="downloadReportBtn" type="button">Descargar mes</button>
+              <button class="save-action" id="sendReportBtn" type="button">Preparar correo</button>
+            </div>
+            <p class="send-status" id="sendStatus" aria-live="polite"></p>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
