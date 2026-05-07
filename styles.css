@@ -544,6 +544,15 @@ textarea:focus {
   text-align: center;
 }
 
+.ocr-status {
+  min-height: 18px;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+  text-align: center;
+}
+
 @media (max-width: 390px) {
   .app-shell {
     padding: 0;

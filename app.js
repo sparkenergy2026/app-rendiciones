@@ -1,12 +1,6 @@
 const companies = ["BESSGX", "Spark.e", "Energy Pulse"];
 const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 const storageKey = "rendiciones-expenses-v1";
-const sampleSuppliers = [
-  { name: "Copec S.A.", rut: "99.520.000-7", category: "Combustible", total: 68490 },
-  { name: "Sodexo Chile S.A.", rut: "96.792.430-K", category: "Alimentación", total: 23990 },
-  { name: "Easy Retail S.A.", rut: "96.671.750-5", category: "Herramientas / materiales", total: 129900 },
-  { name: "Entel PCS Telecomunicaciones S.A.", rut: "96.806.980-2", category: "Servicios", total: 44990 },
-];
 
 const state = {
   imageData: "",
@@ -79,17 +73,7 @@ function bindCapture() {
     reader.readAsDataURL(file);
   });
 
-  $("scanBtn").addEventListener("click", () => {
-    const sample = sampleSuppliers[Math.floor(Math.random() * sampleSuppliers.length)];
-    const net = Math.round(sample.total / 1.19);
-    $("supplierName").value = sample.name;
-    $("supplierRut").value = sample.rut;
-    $("category").value = sample.category;
-    $("date").value = new Date().toISOString().slice(0, 10);
-    $("net").value = net;
-    $("vat").value = sample.total - net;
-    $("total").value = sample.total;
-  });
+  $("scanBtn").addEventListener("click", readReceipt);
 
   $("total").addEventListener("input", () => {
     const total = Number($("total").value.replace(/\D/g, ""));
@@ -248,6 +232,100 @@ function renderReport() {
   const total = expenses.reduce((sum, expense) => sum + expense.total, 0);
   $("reportCount").textContent = expenses.length;
   $("reportTotal").textContent = formatCLP(total);
+}
+
+async function readReceipt() {
+  if (!state.imageData) {
+    $("ocrStatus").textContent = "Primero toma o carga una foto del documento.";
+    return;
+  }
+
+  if (!window.Tesseract) {
+    $("ocrStatus").textContent = "OCR no disponible. Revisa la conexion e intenta nuevamente.";
+    return;
+  }
+
+  $("scanBtn").disabled = true;
+  $("scanBtn").textContent = "Leyendo...";
+  $("ocrStatus").textContent = "Procesando imagen en este dispositivo.";
+
+  try {
+    const result = await Tesseract.recognize(state.imageData, "spa+eng", {
+      logger: (event) => {
+        if (event.status === "recognizing text") {
+          $("ocrStatus").textContent = `Leyendo texto ${Math.round(event.progress * 100)}%`;
+        }
+      },
+    });
+    const parsed = parseReceiptText(result.data.text);
+    fillParsedReceipt(parsed);
+    $("ocrStatus").textContent = parsed.found
+      ? "Lectura lista. Revisa y corrige antes de guardar."
+      : "No pude detectar datos claros. Ingresa los campos manualmente.";
+  } catch (error) {
+    $("ocrStatus").textContent = "No se pudo leer el documento. Ingresa los datos manualmente.";
+  } finally {
+    $("scanBtn").disabled = false;
+    $("scanBtn").textContent = "Leer documento";
+  }
+}
+
+function parseReceiptText(text) {
+  const compact = text.replace(/\s+/g, " ").trim();
+  const lines = text
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const rut = compact.match(/\b\d{1,2}\.?\d{3}\.?\d{3}-[\dkK]\b/)?.[0] || "";
+  const date = parseDate(compact);
+  const amounts = extractAmounts(compact);
+  const total = amounts[amounts.length - 1] || 0;
+  const net = total ? Math.round(total / 1.19) : 0;
+  const vat = total ? total - net : 0;
+  const supplierName = guessSupplierName(lines, rut);
+
+  return {
+    supplierName,
+    supplierRut: rut,
+    date,
+    net,
+    vat,
+    total,
+    found: Boolean(supplierName || rut || date || total),
+  };
+}
+
+function parseDate(text) {
+  const match = text.match(/\b(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})\b/);
+  if (!match) return "";
+
+  const day = match[1].padStart(2, "0");
+  const month = match[2].padStart(2, "0");
+  const year = match[3].length === 2 ? `20${match[3]}` : match[3];
+  return `${year}-${month}-${day}`;
+}
+
+function extractAmounts(text) {
+  const matches = [...text.matchAll(/(?:\$|\b)(\d{1,3}(?:[.\s]\d{3})+|\d{4,})\b/g)];
+  return matches
+    .map((match) => Number(match[1].replace(/[.\s]/g, "")))
+    .filter((value) => value >= 1000 && value < 100000000)
+    .sort((a, b) => a - b);
+}
+
+function guessSupplierName(lines, rut) {
+  const ignored = /boleta|factura|rut|giro|fecha|total|iva|neto|sucursal|direccion|electronica/i;
+  const candidates = lines.filter((line) => line.length > 3 && !ignored.test(line) && line !== rut);
+  return candidates[0] || "";
+}
+
+function fillParsedReceipt(parsed) {
+  if (parsed.supplierName) $("supplierName").value = parsed.supplierName;
+  if (parsed.supplierRut) $("supplierRut").value = parsed.supplierRut;
+  if (parsed.date) $("date").value = parsed.date;
+  if (parsed.total) $("total").value = parsed.total;
+  if (parsed.net) $("net").value = parsed.net;
+  if (parsed.vat) $("vat").value = parsed.vat;
 }
 
 function exportCsv(expenses = state.expenses, name = `rendiciones-${new Date().toISOString().slice(0, 10)}.csv`) {

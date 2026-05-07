@@ -1,4 +1,4 @@
-const cacheName = "rendiciones-v1";
+const cacheName = "rendiciones-v2";
 const appShell = [
   "./",
   "./index.html",
